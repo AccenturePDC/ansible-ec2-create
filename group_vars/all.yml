@@ -13,6 +13,7 @@ vpc_cidr_block: '10.10.0.0/16'
 assign_public_ip: 'yes'
 multinode: 'false'
 env: 'sandbox'
+allocate_eip: 'false'
 
 #Docker Logical Volume attributes
 lv_volume_type: 'gp2'

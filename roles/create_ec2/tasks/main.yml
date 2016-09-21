@@ -39,6 +39,14 @@
       export {{ instance_name }}_REGION={{ ec2["instances"][0]["region"] }}
       export {{ instance_name }}_AZ={{ ec2["instances"][0]["placement"] }}
       
+- block:
+  - name: allocate elastic IP
+    ec2_eip: device_id={{ ec2["instances"][0]["id"] }}
+    register: ec2_eip
+
+  - debug: var=ec2_eip
+  when: allocate_eip == "true"
+  
 - name: Wait for SSH to come up
   wait_for: host={{ ec2["instances"][0]["private_ip"] }} port=22 delay=60 timeout=320 state=started
 
