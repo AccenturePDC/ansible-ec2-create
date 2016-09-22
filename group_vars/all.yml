@@ -15,8 +15,8 @@ multinode: 'false'
 env: 'sandbox'
 allocate_eip: 'false'
 
-#Docker Logical Volume attributes
-lv_volume_type: 'gp2'
-lv_device_name: '/dev/xvdf'
-lv_volume_size: '50'
-lv_volume_group: 'docker-vg'
+# Docker Logical Volume attributes
+attach_secondary_volume: 'false'
+secondary_volume_type: 'gp2'
+secondary_device_name: '/dev/xvdf'
+secondary_volume_size: '50'
