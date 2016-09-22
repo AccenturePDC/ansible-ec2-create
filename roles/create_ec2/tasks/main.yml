@@ -69,22 +69,20 @@
       add_host: name={{ ec2["instances"][0]["private_ip"] }} groups=ec2_hosts
 
   rescue:
-    - name: Deleting provisioned instance because of playbook failure
-      ec2:
-        region: "{{ ec2['instances'][0]['aws_region'] }}"
-        state: absent
-        instance_ids: "{{ ec2['instances'][0]['id'] }}"
-      register: fail
-
-    - debug: var=fail
-
     - name: Releasing Elastic IP because of playbook failure
       ec2_eip:
         ip: "{{ ec2_eip['public_ip'] }}"
         state: absent
       register: fail
       when: allocate_eip == "true"
-
+    - debug: var=fail
+    
+    - name: Deleting provisioned instance because of playbook failure
+      ec2:
+        region: "{{ ec2['instances'][0]['aws_region'] }}"
+        state: absent
+        instance_ids: "{{ ec2['instances'][0]['id'] }}"
+      register: fail
     - debug: var=fail
     
     - fail: msg="Exiting now with error."
