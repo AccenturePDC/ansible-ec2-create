@@ -31,7 +31,7 @@
       ec2_vol:
         instance: "{{ ec2['instances'][0]['id'] }}"
         volume_type: "{{ secondary_volume_type }}"
-        device_name: "{{ secondary_device_name }}"
+        device_name: "{{ secondary_volume_device_name }}"
         volume_size: "{{ secondary_volume_size }}"
         region: "{{ aws_region }}"
         delete_on_termination: "yes"
