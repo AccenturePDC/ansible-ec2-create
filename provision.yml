@@ -7,4 +7,3 @@
   roles:
    - create_security_group
    - { role: create_ec2, security_group_id: "{{ aws_sec_group.group_id }}" }
-   - attach_volume
