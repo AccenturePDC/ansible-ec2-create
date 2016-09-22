@@ -38,11 +38,12 @@ key_name | AWS Key pair name
 security_group | AWS Security group name which controls traffic to reach an EC2 instance
 instance_type | Hardware of the EC2 instance (No. of CPU, RAM, and storage)
 ami_id | Image ID of OS type of EC2 instance
+attach_secondary_volume | `true` or `false`, Attach a secondary volume  
 volume_device_name, secondary_volume_device_name | Volume device name
 volume_type, secondary_volume_type | Volume type (Magnetic, GP2, IO1)
 volume_size, secondary_volume_size | Volume Size in GiB
 vpc_subnet_id | VPC Subnet ID
-assign_public_ip | Enable/Disable auto-assigning of Public IP to an EC2 instance
-allocate_eip | Enable/Disable auto-assigning of Elastic IP to an EC2 instance
+assign_public_ip | `true` or `false`, Enable/Disable auto-assigning of Public IP to an EC2 instance
+allocate_eip | `true` or `false`, Enable/Disable auto-assigning of Elastic IP to an EC2 instance
 
 
