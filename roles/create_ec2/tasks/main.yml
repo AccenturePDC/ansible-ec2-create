@@ -27,20 +27,30 @@
     - name: Write the instance id to a file
       shell: echo "{{ ec2.instance_ids }}" | tr -d "[]u'" > ./instance_ids.txt
 
+    - name: Attach a secondary volume to EC2
+      ec2_vol:
+        instance: "{{ ec2['instances'][0]['id'] }}"
+        volume_type: "{{ secondary_volume_type }}"
+        device_name: "{{ secondary_device_name }}"
+        volume_size: "{{ secondary_volume_size }}"
+        region: "{{ aws_region }}"
+        delete_on_termination: "yes"
+      when: attach_secondary_volume == "true"
+  
     - block:
-      - name: allocate elastic IP
+      - name: Allocate elastic IP to EC2
         ec2_eip: device_id={{ ec2['instances'][0]['id'] }}
         register: ec2_eip
       - debug: var=ec2_eip
       when: allocate_eip == "true"
 
-    # Get the new public dns after assigning a public ip
-    - ec2_remote_facts:
+    - name: Get the latest instance metadata
+      ec2_remote_facts:
         filters:
           instance-id: "{{ ec2['instances'][0]['id'] }}"
       register: ec2_after_eip
       when: allocate_eip == "true"
-      
+    
     - set_fact:
         ec2_public_ip: "{{ ec2_eip['public_ip'] }}"
         ec2_public_hostname: "{{ ec2_after_eip['instances'][0]['public_dns_name'] }}"
