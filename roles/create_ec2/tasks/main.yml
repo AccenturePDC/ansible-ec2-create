@@ -26,26 +26,33 @@
 - name: Write the instance id to a file
   shell: echo "{{ ec2.instance_ids }}" | tr -d "[]u'" > ./instance_ids.txt
 
+- name: allocate elastic IP
+  ec2_eip: device_id={{ ec2["instances"][0]["id"] }}
+  register: ec2_eip
+
+- debug: var=ec2_eip
+  when: allocate_eip == "true"
+
+- set_facts:
+    ec2_public_ip: "{{ ec2_eip['public_ip'] }}"
+  when: allocate_eip == "true"
+
+- set_facts:
+    ec2_public_ip: "{{ ec2["instances"][0]["public_ip"] }}"
+  when: allocate_eip == "false"
+
 - name: Create a properties file about the created instance information
   blockinfile:
     dest: ./instances_data.env
     marker: "# {mark} {{ instance_name }}"
     create: yes
     block: |
-      export {{ instance_name }}_PUBLIC_IP={{ ec2["instances"][0]["public_ip"] }}
+      export {{ instance_name }}_PUBLIC_IP={{ ec2_public_ip }}
       export {{ instance_name }}_PRIVATE_IP={{ ec2["instances"][0]["private_ip"] }}
       export {{ instance_name }}_PUBLIC_HOSTNAME={{ ec2["instances"][0]["public_dns_name"] }}
       export {{ instance_name }}_PRIVATE_HOSTNAME={{ ec2["instances"][0]["private_dns_name"] }}
       export {{ instance_name }}_REGION={{ ec2["instances"][0]["region"] }}
       export {{ instance_name }}_AZ={{ ec2["instances"][0]["placement"] }}
-      
-- block:
-  - name: allocate elastic IP
-    ec2_eip: device_id={{ ec2["instances"][0]["id"] }}
-    register: ec2_eip
-
-  - debug: var=ec2_eip
-  when: allocate_eip == "true"
   
 - name: Wait for SSH to come up
   wait_for: host={{ ec2["instances"][0]["private_ip"] }} port=22 delay=60 timeout=320 state=started
