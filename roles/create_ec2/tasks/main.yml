@@ -1,54 +1,90 @@
 ---
-- name: Create EC2 instance
-  ec2:
-    key_name: "{{ key_name }}" 
-    group_id: "{{ security_group_id }}"
-    instance_type: "{{ instance_type }}"
-    image: "{{ ami_id }}"
-    wait: yes
-    wait_timeout: 500
-    volumes:
-     - device_name: "{{ volume_device_name }}"
-       volume_type: "{{ volume_type }}"
-       volume_size: "{{ volume_size }}"
-       delete_on_termination: True
-    vpc_subnet_id: "{{ vpc_subnet_id }}"
-    assign_public_ip: "{{ assign_public_ip }}"
-    count: 1
-    instance_tags:
-     Name: "{{ instance_name }}"
-     environment: "{{ env }}"
-    region: "{{ aws_region }}"
-  register: ec2
-
-- debug: var=ec2
-
-- name: Write the instance id to a file
-  shell: echo "{{ ec2.instance_ids }}" | tr -d "[]u'" > ./instance_ids.txt
-
-- name: Create a properties file about the created instance information
-  blockinfile:
-    dest: ./instances_data.env
-    marker: "# {mark} {{ instance_name }}"
-    create: yes
-    block: |
-      export {{ instance_name }}_PUBLIC_IP={{ ec2["instances"][0]["public_ip"] }}
-      export {{ instance_name }}_PRIVATE_IP={{ ec2["instances"][0]["private_ip"] }}
-      export {{ instance_name }}_PUBLIC_HOSTNAME={{ ec2["instances"][0]["public_dns_name"] }}
-      export {{ instance_name }}_PRIVATE_HOSTNAME={{ ec2["instances"][0]["private_dns_name"] }}
-      export {{ instance_name }}_REGION={{ ec2["instances"][0]["region"] }}
-      export {{ instance_name }}_AZ={{ ec2["instances"][0]["placement"] }}
-      
 - block:
-  - name: allocate elastic IP
-    ec2_eip: device_id={{ ec2["instances"][0]["id"] }}
-    register: ec2_eip
+    - name: Create EC2 instance
+      ec2:
+        key_name: "{{ key_name }}" 
+        group_id: "{{ security_group_id }}"
+        instance_type: "{{ instance_type }}"
+        image: "{{ ami_id }}"
+        wait: yes
+        wait_timeout: 500
+        volumes:
+         - device_name: "{{ volume_device_name }}"
+           volume_type: "{{ volume_type }}"
+           volume_size: "{{ volume_size }}"
+           delete_on_termination: True
+        vpc_subnet_id: "{{ vpc_subnet_id }}"
+        assign_public_ip: "{{ assign_public_ip }}"
+        count: 1
+        instance_tags:
+         Name: "{{ instance_name }}"
+         environment: "{{ env }}"
+        region: "{{ aws_region }}"
+      register: ec2
 
-  - debug: var=ec2_eip
-  when: allocate_eip == "true"
-  
-- name: Wait for SSH to come up
-  wait_for: host={{ ec2["instances"][0]["private_ip"] }} port=22 delay=60 timeout=320 state=started
+    - debug: var=ec2
 
-- name: Add IP to ec2_hosts group
-  add_host: name={{ ec2["instances"][0]["private_ip"] }} groups=ec2_hosts
+    - name: Write the instance id to a file
+      shell: echo "{{ ec2.instance_ids }}" | tr -d "[]u'" > ./instance_ids.txt
+
+    - block:
+      - name: allocate elastic IP
+        ec2_eip: device_id={{ ec2['instances'][0]['id'] }}
+        register: ec2_eip
+      - debug: var=ec2_eip
+      when: allocate_eip == "true"
+
+    # Get the new public dns after assigning a public ip
+    - ec2_remote_facts:
+        filters:
+          instance-id: "{{ ec2['instances'][0]['id'] }}"
+      register: ec2_after_eip
+      when: allocate_eip == "true"
+      
+    - set_fact:
+        ec2_public_ip: "{{ ec2_eip['public_ip'] }}"
+        ec2_public_hostname: "{{ ec2_after_eip['instances'][0]['public_dns_name'] }}"
+      when: allocate_eip == "true"
+
+    - set_fact:
+        ec2_public_ip: "{{ ec2['instances'][0]['public_ip'] }}"
+        ec2_public_hostname: "{{ ec2['instances'][0]['public_dns_name'] }}"
+      when: allocate_eip == "false"
+      
+    - name: Create a properties file about the created instance information
+      blockinfile:
+        dest: ./instances_data.env
+        marker: "# {mark} {{ instance_name }}"
+        create: yes
+        block: |
+          export {{ instance_name }}_PUBLIC_IP={{ ec2_public_ip }}
+          export {{ instance_name }}_PRIVATE_IP={{ ec2['instances'][0]['private_ip'] }}
+          export {{ instance_name }}_PUBLIC_HOSTNAME={{ ec2_public_hostname }}
+          export {{ instance_name }}_PRIVATE_HOSTNAME={{ ec2['instances'][0]['private_dns_name'] }}
+          export {{ instance_name }}_REGION={{ ec2['instances'][0]['region'] }}
+          export {{ instance_name }}_AZ={{ ec2['instances'][0]['placement'] }}
+      
+    - name: Wait for SSH to come up
+      wait_for: host={{ ec2['instances'][0]['private_ip'] }} port=22 delay=60 timeout=320 state=started
+
+    - name: Add IP to ec2_hosts group
+      add_host: name={{ ec2['instances'][0]['private_ip'] }} groups=ec2_hosts
+
+  rescue:
+    - name: Releasing Elastic IP because of playbook failure
+      ec2_eip:
+        ip: "{{ ec2_eip['public_ip'] }}"
+        state: absent
+      register: fail
+      when: allocate_eip == "true"
+    - debug: var=fail
+    
+    - name: Deleting provisioned instance because of playbook failure
+      ec2:
+        region: "{{ ec2['instances'][0]['aws_region'] }}"
+        state: absent
+        instance_ids: "{{ ec2['instances'][0]['id'] }}"
+      register: fail
+    - debug: var=fail
+    
+    - fail: msg="Exiting now with error."
