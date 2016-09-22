@@ -43,5 +43,6 @@ volume_type | Volume type (Magnetic, GP2, IO1)
 volume_size | Volume Size in GiB
 vpc_subnet_id | VPC Subnet ID
 assign_public_ip | Enable/Disable auto-assigning of Public IP to an EC2 instance
+allocate_eip | Enable/Disable auto-assigning of Elastic IP to an EC2 instance
 
 
