@@ -41,6 +41,13 @@
     ec2_public_ip: "{{ ec2['instances'][0]['public_ip'] }}"
   when: allocate_eip == "false"
 
+# Get the new public dns after assigning a public ip
+- ec2_remote_facts:
+    filters:
+      instance-id: "{{ ec2['instances'][0]['id'] }}"
+  register: ec2
+  when: allocate_eip == "true"
+  
 - name: Create a properties file about the created instance information
   blockinfile:
     dest: ./instances_data.env
