@@ -18,5 +18,5 @@ allocate_eip: 'false'
 # Docker Logical Volume attributes
 attach_secondary_volume: 'false'
 secondary_volume_type: 'gp2'
-secondary_device_name: '/dev/xvdf'
+secondary_volume_device_name: '/dev/xvdf'
 secondary_volume_size: '50'
