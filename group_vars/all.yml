@@ -1,4 +1,3 @@
-# Ec2 attributes
 ansible_user: 'ec2-user'
 aws_region: 'us-east-1'
 key_name: 'default_ssh_keypair'
@@ -14,8 +13,6 @@ assign_public_ip: 'yes'
 multinode: 'false'
 env: 'sandbox'
 allocate_eip: 'false'
-
-# Docker Logical Volume attributes
 attach_secondary_volume: 'false'
 secondary_volume_type: 'gp2'
 secondary_volume_device_name: '/dev/xvdf'
